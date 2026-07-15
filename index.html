@@ -5,10 +5,9 @@
     <title>لوحة الرسم الاحترافية</title>
     <style>
         body { margin: 0; background: #222; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
-        .toolbar { background: #444; padding: 10px; width: 100%; display: flex; justify-content: center; gap: 10px; }
+        .toolbar { background: #444; padding: 10px; width: 100%; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
         canvas { background: white; cursor: crosshair; touch-action: none; flex-grow: 1; width: 100%; }
-        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
-        .color-btn { width: 30px; height: 30px; border-radius: 50%; }
+        button, select { padding: 10px 15px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -16,10 +15,19 @@
     <div class="toolbar">
         <button onclick="setTool('pen')">القلم</button>
         <button onclick="setTool('line')">خط مستقيم</button>
-        <div class="color-btn" style="background: black" onclick="setColor('black')"></div>
-        <div class="color-btn" style="background: red" onclick="setColor('red')"></div>
-        <div class="color-btn" style="background: blue" onclick="setColor('blue')"></div>
-        <button onclick="clearCanvas()" style="background: #ff4444; color: white;">مسح</button>
+        
+        <select onchange="setColor(this.value)">
+            <option value="black">أسود</option>
+            <option value="red">أحمر</option>
+            <option value="blue">أزرق</option>
+            <option value="green">أخضر</option>
+            <option value="yellow">أصفر</option>
+            <option value="purple">بنفسجي</option>
+            <option value="orange">برتقالي</option>
+        </select>
+
+        <button onclick="undo()">تراجع</button>
+        <button onclick="clearCanvas()" style="background: #ff4444; color: white;">مسح الكل</button>
     </div>
     <canvas id="c"></canvas>
 
@@ -28,14 +36,24 @@
         const ctx = canvas.getContext('2d');
         let painting = false, tool = 'pen', startX, startY;
         let color = 'black';
+        let history = []; // لحفظ خطوات الرسم
 
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 60; }
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 70; }
         window.onresize = resize; resize();
+
+        function saveState() { history.push(ctx.getImageData(0, 0, canvas.width, canvas.height)); }
+        
+        function undo() {
+            if (history.length > 0) {
+                ctx.putImageData(history.pop(), 0, 0);
+            }
+        }
 
         function setTool(t) { tool = t; }
         function setColor(c) { color = c; }
 
         canvas.addEventListener('mousedown', e => {
+            saveState();
             painting = true;
             startX = e.clientX - canvas.offsetLeft;
             startY = e.clientY - canvas.offsetTop;
@@ -68,7 +86,10 @@
             painting = false;
         });
 
-        function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+        function clearCanvas() { 
+            history = []; 
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        }
     </script>
 </body>
 </html>
