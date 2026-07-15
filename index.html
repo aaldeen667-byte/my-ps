@@ -2,16 +2,15 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Paint Pro</title>
+    <title>Paint Pro 4K</title>
     <style>
-        body { margin: 0; background: #1a1a1a; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
-        .toolbar { background: #2d2d2d; padding: 12px; width: 100%; display: flex; justify-content: center; gap: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.6); align-items: center; }
-        canvas { background: white; cursor: crosshair; touch-action: none; flex-grow: 1; width: 100%; }
-        /* هنا جعلنا الإيموجي تظهر باللون الأبيض والأسود */
-        button { padding: 8px 15px; cursor: pointer; border: none; border-radius: 12px; font-size: 24px; background: #444; color: white; filter: grayscale(100%); transition: 0.2s; }
-        button:hover { background: #555; transform: scale(1.1); filter: grayscale(0%); }
-        .color-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; transition: 0.2s; }
-        .color-btn:hover { transform: scale(1.2); border-color: #ffd700; }
+        body { margin: 0; background: #1a0b2e; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+        .toolbar { background: linear-gradient(90deg, #2d1b4e, #4a306d); padding: 15px; width: 100%; display: flex; justify-content: center; gap: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.4); align-items: center; border-bottom: 3px solid #7c4dff; }
+        canvas { background: white; cursor: crosshair; touch-action: none; flex-grow: 1; width: 100%; touch-action: none; }
+        button { padding: 10px 18px; cursor: pointer; border: none; border-radius: 10px; font-size: 24px; background: rgba(255,255,255,0.1); color: white; transition: 0.3s; backdrop-filter: blur(5px); }
+        button:hover { background: rgba(255,255,255,0.3); transform: scale(1.15); }
+        .color-btn { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; transition: 0.3s; box-shadow: 0 0 10px rgba(0,0,0,0.3); }
+        .color-btn:hover { transform: scale(1.25); border-color: #ffeb3b; }
     </style>
 </head>
 <body>
@@ -20,11 +19,9 @@
         <button onclick="setTool('pen')">✏️</button>
         <button onclick="setTool('line')">📏</button>
         <button onclick="setTool('circle')">⭕</button>
-        
         <div class="color-btn" style="background: black" onclick="setColor('black')"></div>
         <div class="color-btn" style="background: red" onclick="setColor('red')"></div>
         <div class="color-btn" style="background: blue" onclick="setColor('blue')"></div>
-        
         <button onclick="undo()">↩️</button>
         <button onclick="clearCanvas()">🗑️</button>
     </div>
@@ -32,17 +29,27 @@
 
     <script>
         const canvas = document.getElementById('c');
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        
+        // تقنية 4K Supersampling: مضاعفة دقة الرسم مرتين
+        const scale = 2; 
+        function resize() {
+            canvas.width = window.innerWidth * scale;
+            canvas.height = (window.innerHeight - 80) * scale;
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = (window.innerHeight - 80) + 'px';
+            ctx.scale(scale, scale);
+        }
+        window.onresize = resize; resize();
+
         let painting = false, tool = 'pen', startX, startY, snapshot;
         let color = 'black';
         let history = [];
 
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 80; }
-        window.onresize = resize; resize();
-
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
         ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
 
         function saveState() { history.push(ctx.getImageData(0, 0, canvas.width, canvas.height)); }
         function undo() { if(history.length > 0) ctx.putImageData(history.pop(), 0, 0); }
@@ -51,8 +58,8 @@
 
         canvas.addEventListener('mousedown', e => {
             painting = true;
-            startX = e.clientX - canvas.offsetLeft;
-            startY = e.clientY - canvas.offsetTop;
+            startX = e.offsetX * scale;
+            startY = e.offsetY * scale;
             snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
             saveState();
             ctx.beginPath();
@@ -61,22 +68,19 @@
         canvas.addEventListener('mousemove', e => {
             if(!painting) return;
             ctx.putImageData(snapshot, 0, 0); 
-            const x = e.clientX - canvas.offsetLeft;
-            const y = e.clientY - canvas.offsetTop;
-            
             ctx.strokeStyle = color;
-            ctx.lineWidth = 4;
+            ctx.lineWidth = 8; // سماكة تتناسب مع الدقة العالية
 
             if(tool === 'pen') {
-                ctx.lineTo(x, y);
+                ctx.lineTo(e.offsetX * scale, e.offsetY * scale);
                 ctx.stroke();
             } else if(tool === 'line') {
                 ctx.beginPath();
                 ctx.moveTo(startX, startY);
-                ctx.lineTo(x, y);
+                ctx.lineTo(e.offsetX * scale, e.offsetY * scale);
                 ctx.stroke();
             } else if(tool === 'circle') {
-                let radius = Math.sqrt(Math.pow(x - startX, 2) + Math.pow(y - startY, 2));
+                let radius = Math.sqrt(Math.pow(e.offsetX * scale - startX, 2) + Math.pow(e.offsetY * scale - startY, 2));
                 ctx.beginPath();
                 ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
                 ctx.stroke();
