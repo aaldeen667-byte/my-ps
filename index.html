@@ -4,92 +4,86 @@
     <meta charset="UTF-8">
     <title>لوحة الرسم الاحترافية</title>
     <style>
-        body { margin: 0; background: #222; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
-        .toolbar { background: #444; padding: 10px; width: 100%; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        body { margin: 0; background: #1a1a1a; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
+        .toolbar { background: #333; padding: 12px; width: 100%; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
         canvas { background: white; cursor: crosshair; touch-action: none; flex-grow: 1; width: 100%; }
-        button, select { padding: 10px 15px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
+        button, select { padding: 10px 20px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; background: #555; color: white; transition: 0.3s; }
+        button:hover { background: #777; }
     </style>
 </head>
 <body>
 
     <div class="toolbar">
-        <button onclick="setTool('pen')">القلم</button>
+        <button onclick="setTool('pen')">القلم الناعم</button>
         <button onclick="setTool('line')">خط مستقيم</button>
-        
+        <button onclick="setTool('circle')">دائرة</button>
         <select onchange="setColor(this.value)">
             <option value="black">أسود</option>
             <option value="red">أحمر</option>
             <option value="blue">أزرق</option>
             <option value="green">أخضر</option>
             <option value="yellow">أصفر</option>
-            <option value="purple">بنفسجي</option>
-            <option value="orange">برتقالي</option>
         </select>
-
-        <button onclick="undo()">تراجع</button>
-        <button onclick="clearCanvas()" style="background: #ff4444; color: white;">مسح الكل</button>
+        <button onclick="undo()" style="background: #4a90e2;">تراجع</button>
+        <button onclick="clearCanvas()" style="background: #e74c3c;">مسح الكل</button>
     </div>
     <canvas id="c"></canvas>
 
     <script>
         const canvas = document.getElementById('c');
-        const ctx = canvas.getContext('2d');
-        let painting = false, tool = 'pen', startX, startY;
+        const ctx = canvas.getContext('2d', {antialias: true}); // تفعيل تنعيم الحواف
+        let painting = false, tool = 'pen', startX, startY, snapshot;
         let color = 'black';
-        let history = []; // لحفظ خطوات الرسم
+        let history = [];
 
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 70; }
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 80; }
         window.onresize = resize; resize();
 
-        function saveState() { history.push(ctx.getImageData(0, 0, canvas.width, canvas.height)); }
-        
-        function undo() {
-            if (history.length > 0) {
-                ctx.putImageData(history.pop(), 0, 0);
-            }
-        }
+        // إعدادات جودة الرسم
+        ctx.lineJoin = 'round'; // لجعل الزوايا ناعمة
+        ctx.lineCap = 'round';  // لجعل نهايات الخطوط دائرية واحترافية
 
+        function saveState() { history.push(ctx.getImageData(0, 0, canvas.width, canvas.height)); }
+        function undo() { if(history.length > 0) ctx.putImageData(history.pop(), 0, 0); }
         function setTool(t) { tool = t; }
         function setColor(c) { color = c; }
 
         canvas.addEventListener('mousedown', e => {
-            saveState();
             painting = true;
             startX = e.clientX - canvas.offsetLeft;
             startY = e.clientY - canvas.offsetTop;
-            if(tool === 'pen') ctx.beginPath();
+            snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            saveState();
+            ctx.beginPath();
         });
 
         canvas.addEventListener('mousemove', e => {
             if(!painting) return;
+            ctx.putImageData(snapshot, 0, 0); 
             const x = e.clientX - canvas.offsetLeft;
             const y = e.clientY - canvas.offsetTop;
             
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 6; // سماكة احترافية
+
             if(tool === 'pen') {
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 5;
-                ctx.lineCap = 'round';
                 ctx.lineTo(x, y);
                 ctx.stroke();
-            }
-        });
-
-        canvas.addEventListener('mouseup', e => {
-            if(tool === 'line' && painting) {
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 5;
+            } else if(tool === 'line') {
                 ctx.beginPath();
                 ctx.moveTo(startX, startY);
-                ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            } else if(tool === 'circle') {
+                let radius = Math.sqrt(Math.pow(x - startX, 2) + Math.pow(y - startY, 2));
+                ctx.beginPath();
+                ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
                 ctx.stroke();
             }
-            painting = false;
         });
 
-        function clearCanvas() { 
-            history = []; 
-            ctx.clearRect(0, 0, canvas.width, canvas.height); 
-        }
+        canvas.addEventListener('mouseup', () => painting = false);
+        function clearCanvas() { history = []; ctx.clearRect(0, 0, canvas.width, canvas.height); }
     </script>
 </body>
 </html>
