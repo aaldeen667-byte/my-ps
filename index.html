@@ -2,36 +2,37 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>لوحة الرسم الاحترافية</title>
+    <title>Paint Pro</title>
     <style>
         body { margin: 0; background: #1a1a1a; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
-        .toolbar { background: #333; padding: 12px; width: 100%; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .toolbar { background: #2d2d2d; padding: 12px; width: 100%; display: flex; justify-content: center; gap: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.6); align-items: center; }
         canvas { background: white; cursor: crosshair; touch-action: none; flex-grow: 1; width: 100%; }
-        button, select { padding: 10px 20px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; background: #555; color: white; transition: 0.3s; }
-        button:hover { background: #777; }
+        /* هنا جعلنا الإيموجي تظهر باللون الأبيض والأسود */
+        button { padding: 8px 15px; cursor: pointer; border: none; border-radius: 12px; font-size: 24px; background: #444; color: white; filter: grayscale(100%); transition: 0.2s; }
+        button:hover { background: #555; transform: scale(1.1); filter: grayscale(0%); }
+        .color-btn { width: 35px; height: 35px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; transition: 0.2s; }
+        .color-btn:hover { transform: scale(1.2); border-color: #ffd700; }
     </style>
 </head>
 <body>
 
     <div class="toolbar">
-        <button onclick="setTool('pen')">القلم الناعم</button>
-        <button onclick="setTool('line')">خط مستقيم</button>
-        <button onclick="setTool('circle')">دائرة</button>
-        <select onchange="setColor(this.value)">
-            <option value="black">أسود</option>
-            <option value="red">أحمر</option>
-            <option value="blue">أزرق</option>
-            <option value="green">أخضر</option>
-            <option value="yellow">أصفر</option>
-        </select>
-        <button onclick="undo()" style="background: #4a90e2;">تراجع</button>
-        <button onclick="clearCanvas()" style="background: #e74c3c;">مسح الكل</button>
+        <button onclick="setTool('pen')">✏️</button>
+        <button onclick="setTool('line')">📏</button>
+        <button onclick="setTool('circle')">⭕</button>
+        
+        <div class="color-btn" style="background: black" onclick="setColor('black')"></div>
+        <div class="color-btn" style="background: red" onclick="setColor('red')"></div>
+        <div class="color-btn" style="background: blue" onclick="setColor('blue')"></div>
+        
+        <button onclick="undo()">↩️</button>
+        <button onclick="clearCanvas()">🗑️</button>
     </div>
     <canvas id="c"></canvas>
 
     <script>
         const canvas = document.getElementById('c');
-        const ctx = canvas.getContext('2d', {antialias: true}); // تفعيل تنعيم الحواف
+        const ctx = canvas.getContext('2d');
         let painting = false, tool = 'pen', startX, startY, snapshot;
         let color = 'black';
         let history = [];
@@ -39,9 +40,9 @@
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 80; }
         window.onresize = resize; resize();
 
-        // إعدادات جودة الرسم
-        ctx.lineJoin = 'round'; // لجعل الزوايا ناعمة
-        ctx.lineCap = 'round';  // لجعل نهايات الخطوط دائرية واحترافية
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.imageSmoothingEnabled = true;
 
         function saveState() { history.push(ctx.getImageData(0, 0, canvas.width, canvas.height)); }
         function undo() { if(history.length > 0) ctx.putImageData(history.pop(), 0, 0); }
@@ -64,7 +65,7 @@
             const y = e.clientY - canvas.offsetTop;
             
             ctx.strokeStyle = color;
-            ctx.lineWidth = 6; // سماكة احترافية
+            ctx.lineWidth = 4;
 
             if(tool === 'pen') {
                 ctx.lineTo(x, y);
