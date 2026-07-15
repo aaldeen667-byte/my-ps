@@ -2,87 +2,73 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>لوحة الرسم</title>
+    <title>لوحة الرسم الاحترافية</title>
     <style>
-        body { margin: 0; background: #333; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; color: white; font-family: sans-serif; }
-        canvas { background: white; border: 5px solid #fff; cursor: crosshair; touch-action: none; /* ضروري لمنع التمرير عند الرسم */ }
-        h1 { margin-bottom: 10px; }
-        .controls { margin-top: 15px; }
-        button { padding: 10px 25px; font-size: 18px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+        body { margin: 0; background: #222; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
+        .toolbar { background: #444; padding: 10px; width: 100%; display: flex; justify-content: center; gap: 10px; }
+        canvas { background: white; cursor: crosshair; touch-action: none; flex-grow: 1; width: 100%; }
+        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
+        .color-btn { width: 30px; height: 30px; border-radius: 50%; }
     </style>
 </head>
 <body>
 
-    <h1>لوحة الرسم بـ لوحة التتبع</h1>
-    <canvas id="c" width="800" height="500"></canvas>
-    <div class="controls">
-        <button onclick="clearCanvas()">مسح اللوحة</button>
+    <div class="toolbar">
+        <button onclick="setTool('pen')">القلم</button>
+        <button onclick="setTool('line')">خط مستقيم</button>
+        <div class="color-btn" style="background: black" onclick="setColor('black')"></div>
+        <div class="color-btn" style="background: red" onclick="setColor('red')"></div>
+        <div class="color-btn" style="background: blue" onclick="setColor('blue')"></div>
+        <button onclick="clearCanvas()" style="background: #ff4444; color: white;">مسح</button>
     </div>
+    <canvas id="c"></canvas>
 
     <script>
         const canvas = document.getElementById('c');
         const ctx = canvas.getContext('2d');
-        let painting = false; // متغير لتتبع حالة الرسم
+        let painting = false, tool = 'pen', startX, startY;
+        let color = 'black';
 
-        // --- إعدادات الفرشاة ---
-        ctx.lineWidth = 5;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = 'black';
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight - 60; }
+        window.onresize = resize; resize();
 
-        // --- وظائف الرسم الأساسية ---
-        function startPosition(e) {
+        function setTool(t) { tool = t; }
+        function setColor(c) { color = c; }
+
+        canvas.addEventListener('mousedown', e => {
             painting = true;
-            // منع التحديد النصي أو التمرير أثناء الضغط
-            e.preventDefault(); 
-            draw(e); // الرسم فور الضغط
-        }
+            startX = e.clientX - canvas.offsetLeft;
+            startY = e.clientY - canvas.offsetTop;
+            if(tool === 'pen') ctx.beginPath();
+        });
 
-        function finishedPosition() {
-            painting = false;
-            ctx.beginPath(); // بدء مسار جديد عند رفع الإصبع
-        }
-
-        function draw(e) {
-            if (!painting) return; // لا ترسم إذا لم يكن الزر مضغوطاً
-
-            // --- تحديد الإحداثيات بدقة للوحة التتبع ---
-            let x, y;
+        canvas.addEventListener('mousemove', e => {
+            if(!painting) return;
+            const x = e.clientX - canvas.offsetLeft;
+            const y = e.clientY - canvas.offsetTop;
             
-            // إذا كان الحدث هو لمس أو ضغط إصبع على التراكباد
-            if (e.touches) {
-                x = e.touches[0].clientX - canvas.getBoundingClientRect().left;
-                y = e.touches[0].clientY - canvas.getBoundingClientRect().top;
-            } else {
-                // إذا كان ماوس (محاكاة التراكباد)
-                x = e.clientX - canvas.getBoundingClientRect().left;
-                y = e.clientY - canvas.getBoundingClientRect().top;
+            if(tool === 'pen') {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                ctx.lineTo(x, y);
+                ctx.stroke();
             }
+        });
 
-            // --- عملية الرسم ---
-            ctx.lineTo(x, y);
-            ctx.stroke();
-            ctx.moveTo(x, y);
-        }
+        canvas.addEventListener('mouseup', e => {
+            if(tool === 'line' && painting) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+                ctx.stroke();
+            }
+            painting = false;
+        });
 
-        // --- مستمعات الأحداث (Event Listeners) ---
-
-        // 1. الماوس (للابتوب العادي)
-        canvas.addEventListener('mousedown', startPosition);
-        canvas.addEventListener('mouseup', finishedPosition);
-        canvas.addEventListener('mousemove', draw);
-        // حماية: إذا خرج المؤشر من اللوحة أثناء الضغط
-        canvas.addEventListener('mouseleave', finishedPosition);
-
-        // 2. أحداث اللمس (مهمة جداً للوحة التتبع في المتصفح)
-        canvas.addEventListener('touchstart', startPosition);
-        canvas.addEventListener('touchend', finishedPosition);
-        canvas.addEventListener('touchmove', draw);
-
-        // --- وظيفة المسح ---
-        function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.beginPath(); // إعادة تعيين المسار بعد المسح
-        }
+        function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
     </script>
 </body>
-</html>نيب
+</html>
